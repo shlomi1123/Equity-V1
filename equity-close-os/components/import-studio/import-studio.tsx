@@ -1369,6 +1369,21 @@ function PeriodAnalysis({
       : "Row-level mover commentary will appear when comparable keys are available.",
   ];
 
+  const analysisQualityWarnings = [
+    !getMappedColumnIndex(currentSession, ["current_period_expense"]) ||
+    !getMappedColumnIndex(previousSession, ["current_period_expense"])
+      ? "Map Current Period Expense in both files for reliable variance analysis."
+      : null,
+    !getMappedColumnIndex(currentSession, ["employee_id", "employee_name", "grant_number"]) ||
+    !getMappedColumnIndex(previousSession, ["employee_id", "employee_name", "grant_number"])
+      ? "Map a stable join key (Employee ID + Grant Number preferred) in both files to improve new/missing record attribution."
+      : null,
+    !getMappedColumnIndex(currentSession, ["forfeitures"]) ||
+    !getMappedColumnIndex(previousSession, ["forfeitures"])
+      ? "Map Forfeitures / Cancelled Equity in both files to quantify termination-related impact."
+      : null,
+  ].filter(Boolean) as string[];
+
   const smartCards = [
     {
       title: "Raw delta",
@@ -1532,6 +1547,17 @@ function PeriodAnalysis({
             <p key={`management-summary-${index}`}>{part}</p>
           ))}
         </div>
+
+        {analysisQualityWarnings.length > 0 && (
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm font-medium text-amber-900">Data quality warnings</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-800">
+              {analysisQualityWarnings.map((warning, idx) => (
+                <li key={`analysis-warning-${idx}`}>{warning}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       <div className="mt-5">
