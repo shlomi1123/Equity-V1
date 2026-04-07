@@ -1228,10 +1228,19 @@ function PeriodAnalysis({
   const previousExpense = getFieldTotal(previousSession, "current_period_expense");
   const currentForfeitures = getFieldTotal(currentSession, "forfeitures");
   const previousForfeitures = getFieldTotal(previousSession, "forfeitures");
-  const forfeitureDelta =
-    currentForfeitures !== null && previousForfeitures !== null
-      ? currentForfeitures - previousForfeitures
+
+  const normalizedCurrentForfeitures = currentForfeitures === null ? null : Math.abs(currentForfeitures);
+  const normalizedPreviousForfeitures = previousForfeitures === null ? null : Math.abs(previousForfeitures);
+
+  // Positive means incremental drag vs prior period.
+  const cancellationDrag =
+    normalizedCurrentForfeitures !== null && normalizedPreviousForfeitures !== null
+      ? normalizedCurrentForfeitures - normalizedPreviousForfeitures
       : null;
+
+  // Keep existing variable name for downstream compatibility:
+  // represent as negative effect on bridge (drag).
+  const forfeitureDelta = cancellationDrag === null ? null : -Math.abs(cancellationDrag);
   const rawDelta =
     currentExpense !== null && previousExpense !== null ? currentExpense - previousExpense : null;
   const rawDeltaPercent =
@@ -1359,7 +1368,7 @@ function PeriodAnalysis({
       ? `New records contributed ${formatDelta(newRecordContribution)}, while records that disappeared versus prior month removed ${formatNumber(missingRecordContribution)}.`
       : "New and missing record analysis will appear when the join key is mapped in both files.",
     forfeitureDelta !== null
-      ? `Mapped forfeitures moved by ${formatDelta(forfeitureDelta)} between periods.`
+      ? `Cancellation / forfeiture drag contributed ${formatDelta(forfeitureDelta)} (negative indicates stronger drag on expense bridge).`
       : "Map a forfeitures / cancelled equity field to quantify termination-related cancellations.",
     bestDimensionDriver
       ? `The strongest mapped business driver is ${bestDimensionDriver.label} at ${formatDelta(bestDimensionDriver.delta)}.`
@@ -1470,12 +1479,12 @@ function PeriodAnalysis({
       detail: `${formatNumber(missingKeys.length)} prior-only records`,
     },
     {
-      title: "Forfeiture delta",
+      title: "Cancellation drag",
       value: forfeitureDelta === null ? "—" : formatDelta(forfeitureDelta),
       detail:
         currentForfeitures !== null && previousForfeitures !== null
           ? `${formatNumber(currentForfeitures)} current vs ${formatNumber(previousForfeitures)} previous`
-          : "Map Forfeitures / Cancelled Equity to track cancellations",
+          : "Map Forfeitures / Cancelled Equity to quantify cancellation drag",
     },
     {
       title: "Current concentration",
