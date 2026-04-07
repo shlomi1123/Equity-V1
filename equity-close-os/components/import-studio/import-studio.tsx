@@ -1384,6 +1384,44 @@ function PeriodAnalysis({
       : null,
   ].filter(Boolean) as string[];
 
+  const analysisConfidenceChecks = [
+    {
+      label: "Current Period Expense mapped in both files",
+      passed:
+        !!getMappedColumnIndex(currentSession, ["current_period_expense"]) &&
+        !!getMappedColumnIndex(previousSession, ["current_period_expense"]),
+    },
+    {
+      label: "Stable join key mapped in both files",
+      passed:
+        !!getMappedColumnIndex(currentSession, ["employee_id", "grant_number", "employee_name"]) &&
+        !!getMappedColumnIndex(previousSession, ["employee_id", "grant_number", "employee_name"]),
+    },
+    {
+      label: "Forfeitures mapped in both files",
+      passed:
+        !!getMappedColumnIndex(currentSession, ["forfeitures"]) &&
+        !!getMappedColumnIndex(previousSession, ["forfeitures"]),
+    },
+    {
+      label: "Calendar days inferred for both periods",
+      passed: currentInfo.daysInMonth !== null && previousInfo.daysInMonth !== null,
+    },
+  ];
+
+  const passedChecks = analysisConfidenceChecks.filter((item) => item.passed).length;
+  const analysisConfidenceScore = Math.round((passedChecks / analysisConfidenceChecks.length) * 100);
+
+  const varianceBridgeRows = [
+    { label: "Prior month total", value: previousExpense ?? 0 },
+    { label: "Calendar effect", value: calendarEffect ?? 0 },
+    { label: "Continuing-book delta", value: continuingDelta ?? 0 },
+    { label: "New-record contribution", value: newRecordContribution ?? 0 },
+    { label: "Missing-record drag", value: -Math.abs(missingRecordContribution ?? 0) },
+    { label: "Forfeiture delta", value: forfeitureDelta ?? 0 },
+    { label: "Current month total", value: currentExpense ?? 0 },
+  ];
+
   const smartCards = [
     {
       title: "Raw delta",
@@ -1558,6 +1596,38 @@ function PeriodAnalysis({
             </ul>
           </div>
         )}
+      </div>
+
+      <div className="mt-5 grid gap-5 xl:grid-cols-2">
+        <div className="rounded-3xl border border-slate-200 bg-white p-5">
+          <p className="text-sm font-medium text-slate-900">Analysis confidence</p>
+          <p className="mt-2 text-2xl font-semibold text-slate-900">{analysisConfidenceScore}%</p>
+          <p className="mt-1 text-sm text-slate-600">
+            Higher score means stronger mapping coverage for period-over-period attribution.
+          </p>
+          <ul className="mt-3 space-y-2 text-sm text-slate-600">
+            {analysisConfidenceChecks.map((check, idx) => (
+              <li key={`confidence-check-${idx}`} className="flex items-center gap-2">
+                <span
+                  className={`inline-block h-2.5 w-2.5 rounded-full ${check.passed ? "bg-emerald-500" : "bg-amber-500"}`}
+                />
+                {check.label}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-5">
+          <p className="text-sm font-medium text-slate-900">Variance bridge (executive view)</p>
+          <div className="mt-3 space-y-2">
+            {varianceBridgeRows.map((row, idx) => (
+              <div key={`bridge-row-${idx}`} className="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2">
+                <span className="text-sm text-slate-600">{row.label}</span>
+                <span className="text-sm font-semibold text-slate-900">{formatDelta(row.value)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="mt-5">
