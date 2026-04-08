@@ -1726,7 +1726,53 @@ function PeriodAnalysis({
         <div className="mt-3 overflow-x-auto">
           <table className="min-w-full border-collapse text-left text-sm">
             <tbody>
-              {residualBreakdownRows.map((row, idx) => (
+              {[
+                {
+                  label: "Residual amount",
+                  value: formatDelta(
+                    (currentExpense ?? 0) -
+                      (
+                        (previousExpense ?? 0) +
+                        (continuingDelta ?? 0) +
+                        (newRecordContribution ?? 0) -
+                        Math.abs(missingRecordContribution ?? 0) +
+                        (
+                          ((currentSession.manualExpenses ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0)) -
+                          ((previousSession.manualExpenses ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0))
+                        ) +
+                        (forfeitureDelta ?? 0)
+                      )
+                  ),
+                },
+                {
+                  label: "Reconciliation check (should be 0)",
+                  value: formatDelta(
+                    ((previousExpense ?? 0) +
+                      (continuingDelta ?? 0) +
+                      (newRecordContribution ?? 0) -
+                      Math.abs(missingRecordContribution ?? 0) +
+                      (
+                        ((currentSession.manualExpenses ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0)) -
+                        ((previousSession.manualExpenses ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0))
+                      ) +
+                      (forfeitureDelta ?? 0) +
+                      (
+                        (currentExpense ?? 0) -
+                          (
+                            (previousExpense ?? 0) +
+                            (continuingDelta ?? 0) +
+                            (newRecordContribution ?? 0) -
+                            Math.abs(missingRecordContribution ?? 0) +
+                            (
+                              ((currentSession.manualExpenses ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0)) -
+                              ((previousSession.manualExpenses ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0))
+                            ) +
+                            (forfeitureDelta ?? 0)
+                          )
+                      )) - (currentExpense ?? 0)
+                  ),
+                },
+              ].map((row, idx) => (
                 <tr key={`residual-row-${idx}`} className="odd:bg-white even:bg-slate-50/60">
                   <td className="border-t border-slate-200 px-3 py-2 text-slate-600">{row.label}</td>
                   <td className="border-t border-slate-200 px-3 py-2 font-medium text-slate-900">{row.value}</td>
