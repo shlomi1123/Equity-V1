@@ -1224,6 +1224,50 @@ function PeriodAnalysis({
   const currentInfo = inferPeriodInfo(currentSession);
   const previousInfo = inferPeriodInfo(previousSession);
 
+  type ManualAdjustment = { id: string; description: string; amount: number };
+
+  const [manualCurrentAdjustments, setManualCurrentAdjustments] = useState<ManualAdjustment[]>([]);
+  const [manualPreviousAdjustments, setManualPreviousAdjustments] = useState<ManualAdjustment[]>([]);
+
+  function addManualAdjustment(period: "current" | "previous") {
+    const newItem: ManualAdjustment = {
+      id: crypto.randomUUID(),
+      description: "",
+      amount: 0,
+    };
+    if (period === "current") {
+      setManualCurrentAdjustments((prev) => [...prev, newItem]);
+    } else {
+      setManualPreviousAdjustments((prev) => [...prev, newItem]);
+    }
+  }
+
+  function updateManualAdjustment(
+    period: "current" | "previous",
+    id: string,
+    patch: Partial<ManualAdjustment>,
+  ) {
+    const updater = (items: ManualAdjustment[]) =>
+      items.map((item) => (item.id === id ? { ...item, ...patch } : item));
+
+    if (period === "current") {
+      setManualCurrentAdjustments((prev) => updater(prev));
+    } else {
+      setManualPreviousAdjustments((prev) => updater(prev));
+    }
+  }
+
+  function removeManualAdjustment(period: "current" | "previous", id: string) {
+    if (period === "current") {
+      setManualCurrentAdjustments((prev) => prev.filter((item) => item.id !== id));
+    } else {
+      setManualPreviousAdjustments((prev) => prev.filter((item) => item.id !== id));
+    }
+  }
+
+  const manualCurrentTotal = manualCurrentAdjustments.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  const manualPreviousTotal = manualPreviousAdjustments.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+
   const currentExpense = getFieldTotal(currentSession, "current_period_expense");
   const previousExpense = getFieldTotal(previousSession, "current_period_expense");
   const currentForfeitures = getFieldTotal(currentSession, "forfeitures");
@@ -1241,6 +1285,13 @@ function PeriodAnalysis({
   // Keep existing variable name for downstream compatibility:
   // represent as negative effect on bridge (drag).
   const forfeitureDelta = cancellationDrag === null ? null : -Math.abs(cancellationDrag);
+  const adjustedCurrentExpense = currentExpense === null ? null : currentExpense + manualCurrentTotal;
+  const adjustedPreviousExpense = previousExpense === null ? null : previousExpense + manualPreviousTotal;
+  const adjustedRawDelta =
+    adjustedCurrentExpense !== null && adjustedPreviousExpense !== null
+      ? adjustedCurrentExpense - adjustedPreviousExpense
+      : null;
+
   const rawDelta =
     currentExpense !== null && previousExpense !== null ? currentExpense - previousExpense : null;
   const rawDeltaPercent =
@@ -1591,6 +1642,101 @@ function PeriodAnalysis({
           <p className="mt-1 text-xl font-semibold text-slate-900">
             {rawDelta === null ? "—" : `${formatDelta(rawDelta)}${rawDeltaPercent === null ? "" : ` • ${formatPercent(rawDeltaPercent)}`}`}
           </p>
+        </div>
+      </div>
+
+      <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-5">
+        <p className="text-sm font-medium text-slate-900">Manual expenses (outside E*TRADE)</p>
+        <p className="mt-1 text-sm text-slate-600">
+          Add period-specific manual expenses with description. These are added on top of mapped report totals.
+        </p>
+
+        <div className="mt-4 grid gap-4 xl:grid-cols-2">
+          <div className="rounded-2xl border border-slate-200 p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-slate-900">Current period manual expenses</p>
+              <button
+                type="button"
+                onClick={() => addManualAdjustment("current")}
+                className="rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
+              >
+                + Add
+              </button>
+            </div>
+            <div className="mt-3 space-y-2">
+              {manualCurrentAdjustments.map((item) => (
+                <div key={item.id} className="grid grid-cols-12 gap-2">
+                  <input
+                    value={item.description}
+                    onChange={(e) => updateManualAdjustment("current", item.id, { description: e.target.value })}
+                    placeholder="Description"
+                    className="col-span-7 rounded-lg border border-slate-200 px-2 py-1 text-sm"
+                  />
+                  <input
+                    type="number"
+                    value={item.amount}
+                    onChange={(e) => updateManualAdjustment("current", item.id, { amount: Number(e.target.value) || 0 })}
+                    placeholder="Amount"
+                    className="col-span-4 rounded-lg border border-slate-200 px-2 py-1 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeManualAdjustment("current", item.id)}
+                    className="col-span-1 rounded-lg border border-red-200 text-xs text-red-600 hover:bg-red-50"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-sm text-slate-700">Manual subtotal: {formatNumber(manualCurrentTotal)}</p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-slate-900">Previous period manual expenses</p>
+              <button
+                type="button"
+                onClick={() => addManualAdjustment("previous")}
+                className="rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
+              >
+                + Add
+              </button>
+            </div>
+            <div className="mt-3 space-y-2">
+              {manualPreviousAdjustments.map((item) => (
+                <div key={item.id} className="grid grid-cols-12 gap-2">
+                  <input
+                    value={item.description}
+                    onChange={(e) => updateManualAdjustment("previous", item.id, { description: e.target.value })}
+                    placeholder="Description"
+                    className="col-span-7 rounded-lg border border-slate-200 px-2 py-1 text-sm"
+                  />
+                  <input
+                    type="number"
+                    value={item.amount}
+                    onChange={(e) => updateManualAdjustment("previous", item.id, { amount: Number(e.target.value) || 0 })}
+                    placeholder="Amount"
+                    className="col-span-4 rounded-lg border border-slate-200 px-2 py-1 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeManualAdjustment("previous", item.id)}
+                    className="col-span-1 rounded-lg border border-red-200 text-xs text-red-600 hover:bg-red-50"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-sm text-slate-700">Manual subtotal: {formatNumber(manualPreviousTotal)}</p>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+          <p>Adjusted current total: {adjustedCurrentExpense === null ? "N/A" : formatNumber(adjustedCurrentExpense)}</p>
+          <p>Adjusted previous total: {adjustedPreviousExpense === null ? "N/A" : formatNumber(adjustedPreviousExpense)}</p>
+          <p>Adjusted delta: {adjustedRawDelta === null ? "N/A" : formatDelta(adjustedRawDelta)}</p>
         </div>
       </div>
 
