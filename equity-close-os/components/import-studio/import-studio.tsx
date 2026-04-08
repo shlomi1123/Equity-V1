@@ -644,59 +644,7 @@ function HeaderControlBar({
   onHeaderRowChange: (index: number) => void;
 }) {
   return (
-    
-      <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">Manual expenses</p>
-            <p className="mt-1 text-sm text-slate-600">
-              Add period expenses handled outside E*TRADE (description + amount).
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => addManualExpenseLine(activePeriod)}
-            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100"
-          >
-            + Add line
-          </button>
-        </div>
-
-        <div className="mt-4 space-y-2">
-          {(activeSession.manualExpenses ?? []).map((item) => (
-            <div key={item.id} className="grid grid-cols-12 gap-2">
-              <input
-                value={item.description}
-                onChange={(e) => updateManualExpenseLine(activePeriod, item.id, { description: e.target.value })}
-                placeholder="Description"
-                className="col-span-8 rounded-xl border border-slate-200 px-3 py-2 text-sm"
-              />
-              <input
-                type="number"
-                value={item.amount}
-                onChange={(e) => updateManualExpenseLine(activePeriod, item.id, { amount: Number(e.target.value) || 0 })}
-                placeholder="Amount"
-                className="col-span-3 rounded-xl border border-slate-200 px-3 py-2 text-sm"
-              />
-              <button
-                type="button"
-                onClick={() => removeManualExpenseLine(activePeriod, item.id)}
-                className="col-span-1 rounded-xl border border-red-200 text-xs text-red-600 hover:bg-red-50"
-              >
-                ✕
-              </button>
-            </div>
-          ))}
-        </div>
-
-        <p className="mt-3 text-sm text-slate-700">
-          Manual subtotal ({activePeriod === "current" ? "Current" : "Previous"}):
-          {" "}
-          {formatNumber((activeSession.manualExpenses ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0))}
-        </p>
-      </div>
-
-<section className="rounded-3xl border border-slate-200 bg-[#fcfcfa] p-4">
+    <section className="rounded-3xl border border-slate-200 bg-[#fcfcfa] p-4">
       <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr_1fr_1fr_auto]">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">Header control</p>
@@ -2207,7 +2155,56 @@ export function ImportStudio() {
                   </div>
 
                   <div className="rounded-2xl bg-white p-4">
-                    
+                    <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">Manual expenses</p>
+            <p className="mt-1 text-sm text-slate-600">
+              Add period expenses handled outside E*TRADE (description + amount).
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => addManualExpenseLine(activePeriod)}
+            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100"
+          >
+            + Add line
+          </button>
+        </div>
+
+        <div className="mt-4 space-y-2">
+          {(activeSession.manualExpenses ?? []).map((item) => (
+            <div key={item.id} className="grid grid-cols-12 gap-2">
+              <input
+                value={item.description}
+                onChange={(e) => updateManualExpenseLine(activePeriod, item.id, { description: e.target.value })}
+                placeholder="Description"
+                className="col-span-8 rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              />
+              <input
+                type="number"
+                value={item.amount}
+                onChange={(e) => updateManualExpenseLine(activePeriod, item.id, { amount: Number(e.target.value) || 0 })}
+                placeholder="Amount"
+                className="col-span-3 rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => removeManualExpenseLine(activePeriod, item.id)}
+                className="col-span-1 rounded-xl border border-red-200 text-xs text-red-600 hover:bg-red-50"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-3 text-sm text-slate-700">
+          Manual subtotal ({activePeriod === "current" ? "Current" : "Previous"}):
+          {" "}
+          {formatNumber((activeSession.manualExpenses ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0))}
+        </p>
+      </div>
 
 <p className="text-sm text-slate-500">Selected header row</p>
                     <p className="mt-1 text-sm font-medium text-slate-900">
