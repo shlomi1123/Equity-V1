@@ -1717,8 +1717,7 @@ function PeriodAnalysis({
         </div>
 
         
-      </div>
-
+      
       <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-5">
         <p className="text-sm font-medium text-slate-900">Management summary</p>
         <div className="mt-2 flex flex-wrap gap-2">
