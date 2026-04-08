@@ -1566,7 +1566,6 @@ function PeriodAnalysis({
   return (
     <section className="rounded-3xl border border-slate-200 bg-[#fcfcfa] p-5">
       <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">Period vs period</p>
-      <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">PREMIUM ANALYSIS PATCH ACTIVE</p>
       <h2 className="mt-2 text-2xl font-semibold">Analysis module</h2>
       <p className="mt-1 text-sm text-slate-600">
         Executive totals, management wording, calendar-normalized comparison, business drivers, concentration, and outlier review.
