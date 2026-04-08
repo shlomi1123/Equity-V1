@@ -1354,6 +1354,13 @@ function PeriodAnalysis({
 
   const topMover = topMovers[0] ?? null;
 
+  function quickCopyText(text: string, label: string) {
+    navigator.clipboard.writeText(text).then(
+      () => window.alert(`${label} copied to clipboard.`),
+      () => window.alert(`Could not copy ${label.toLowerCase()}.`)
+    );
+  }
+
   const managementSummaryParts = [
     rawDelta === null
       ? "Map Current Period Expense in both files to unlock management summary output."
@@ -1590,10 +1597,42 @@ function PeriodAnalysis({
 
       <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-5">
         <p className="text-sm font-medium text-slate-900">Management summary</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => quickCopyText(managementSummaryParts.join("\n"), "Management summary")}
+            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
+          >
+            Copy management summary
+          </button>
+          <button
+            type="button"
+            onClick={() => quickCopyText(
+              [
+                "Equity Close Executive Pack",
+                "--------------------------",
+                ...managementSummaryParts
+              ].join("\n"),
+              "Executive pack"
+            )}
+            className="rounded-xl border border-slate-900 bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800"
+          >
+            Copy executive pack
+          </button>
+        </div>
         <div className="mt-3 space-y-3 text-sm leading-6 text-slate-600">
           {managementSummaryParts.map((part, index) => (
             <p key={`management-summary-${index}`}>{part}</p>
           ))}
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <p className="text-sm font-medium text-slate-900">Assumptions & data quality</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600">
+            <li>Calendar normalization uses inferred month lengths when available.</li>
+            <li>Join-key quality improves when Employee ID + Grant Number are mapped in both files.</li>
+            <li>Cancellation impact requires Forfeitures / Cancelled Equity mapped in both files.</li>
+          </ul>
         </div>
 
         {analysisQualityWarnings.length > 0 && (
