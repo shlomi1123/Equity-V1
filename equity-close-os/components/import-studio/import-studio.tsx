@@ -27,6 +27,12 @@ type MappingItem = {
   customValue: string;
 };
 
+type ManualExpenseLine = {
+  id: string;
+  description: string;
+  amount: number;
+};
+
 type ReusableTemplate = {
   id: string;
   signature: string;
@@ -54,6 +60,7 @@ type SessionCard = {
   templateSignature: string | null;
   matchedReusableTemplateId: string | null;
   templateName: string;
+  manualExpenses: ManualExpenseLine[];
 };
 
 const REUSABLE_TEMPLATE_STORAGE_KEY = "equity-close-os:mapping-profiles:v1";
@@ -183,6 +190,7 @@ const INITIAL_SESSIONS: Record<PeriodKey, SessionCard> = {
     templateSignature: null,
     matchedReusableTemplateId: null,
     templateName: "",
+    manualExpenses: [],
   },
   previous: {
     key: "previous",
@@ -1224,8 +1232,23 @@ function PeriodAnalysis({
   const currentInfo = inferPeriodInfo(currentSession);
   const previousInfo = inferPeriodInfo(previousSession);
 
-  const currentExpense = getFieldTotal(currentSession, "current_period_expense");
-  const previousExpense = getFieldTotal(previousSession, "current_period_expense");
+  const currentExpenseBase = getFieldTotal(currentSession, "current_period_expense");
+  const previousExpenseBase = getFieldTotal(previousSession, "current_period_expense");
+
+  const currentManualTotal = (currentSession.manualExpenses ?? []).reduce(
+    (sum, item) => sum + (Number(item.amount) || 0),
+    0,
+  );
+  const previousManualTotal = (previousSession.manualExpenses ?? []).reduce(
+    (sum, item) => sum + (Number(item.amount) || 0),
+    0,
+  );
+
+  const currentExpense =
+    currentExpenseBase === null ? (currentManualTotal ? currentManualTotal : null) : currentExpenseBase + currentManualTotal;
+  const previousExpense =
+    previousExpenseBase === null ? (previousManualTotal ? previousManualTotal : null) : previousExpenseBase + previousManualTotal;
+
   const currentForfeitures = getFieldTotal(currentSession, "forfeitures");
   const previousForfeitures = getFieldTotal(previousSession, "forfeitures");
 
@@ -1793,6 +1816,45 @@ export function ImportStudio() {
     }
   }, []);
 
+  function addManualExpenseLine(period: PeriodKey) {
+    setSessions((prev) => ({
+      ...prev,
+      [period]: {
+        ...prev[period],
+        manualExpenses: [
+          ...(prev[period].manualExpenses ?? []),
+          { id: crypto.randomUUID(), description: "", amount: 0 },
+        ],
+      },
+    }));
+  }
+
+  function updateManualExpenseLine(
+    period: PeriodKey,
+    id: string,
+    patch: Partial<ManualExpenseLine>,
+  ) {
+    setSessions((prev) => ({
+      ...prev,
+      [period]: {
+        ...prev[period],
+        manualExpenses: (prev[period].manualExpenses ?? []).map((item) =>
+          item.id === id ? { ...item, ...patch } : item,
+        ),
+      },
+    }));
+  }
+
+  function removeManualExpenseLine(period: PeriodKey, id: string) {
+    setSessions((prev) => ({
+      ...prev,
+      [period]: {
+        ...prev[period],
+        manualExpenses: (prev[period].manualExpenses ?? []).filter((item) => item.id !== id),
+      },
+    }));
+  }
+
   const activeSession = useMemo(() => sessions[activePeriod], [sessions, activePeriod]);
   const activeDerivedTable = useMemo(
     () => getDerivedTable(activeSession.rows, activeSession.headerRowIndex),
@@ -2072,7 +2134,58 @@ export function ImportStudio() {
               />
 
               <section className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
-                <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">Workspace summary</p>
+                      <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">Manual expenses</p>
+            <p className="mt-1 text-sm text-slate-600">
+              Add period expenses handled outside E*TRADE (description + amount).
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => addManualExpenseLine(activePeriod)}
+            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100"
+          >
+            + Add line
+          </button>
+        </div>
+
+        <div className="mt-4 space-y-2">
+          {(activeSession.manualExpenses ?? []).map((item) => (
+            <div key={item.id} className="grid grid-cols-12 gap-2">
+              <input
+                value={item.description}
+                onChange={(e) => updateManualExpenseLine(activePeriod, item.id, { description: e.target.value })}
+                placeholder="Description"
+                className="col-span-8 rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              />
+              <input
+                type="number"
+                value={item.amount}
+                onChange={(e) => updateManualExpenseLine(activePeriod, item.id, { amount: Number(e.target.value) || 0 })}
+                placeholder="Amount"
+                className="col-span-3 rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => removeManualExpenseLine(activePeriod, item.id)}
+                className="col-span-1 rounded-xl border border-red-200 text-xs text-red-600 hover:bg-red-50"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-3 text-sm text-slate-700">
+          Manual subtotal ({activePeriod === "current" ? "Current" : "Previous"}):
+          {" "}
+          {formatNumber((activeSession.manualExpenses ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0))}
+        </p>
+      </div>
+
+<p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">Workspace summary</p>
                 <h2 className="mt-2 text-xl font-semibold">Status</h2>
 
                 <div className="mt-5 space-y-3">
