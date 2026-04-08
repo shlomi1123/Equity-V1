@@ -1491,6 +1491,36 @@ function PeriodAnalysis({
       manualEffectForBridge
     );
 
+  const unmatchedCurrentOnlyExpense = Math.max(newRecordContribution ?? 0, 0);
+  const unmatchedPreviousOnlyExpense = Math.abs(missingRecordContribution ?? 0);
+
+  const matchedCurrentExpense = (currentExpense ?? 0) - unmatchedCurrentOnlyExpense;
+  const matchedPreviousExpense = (previousExpense ?? 0) - unmatchedPreviousOnlyExpense;
+
+  const matchedCoverageCurrentPct =
+    currentExpense && currentExpense !== 0 ? (matchedCurrentExpense / currentExpense) * 100 : null;
+  const matchedCoveragePreviousPct =
+    previousExpense && previousExpense !== 0 ? (matchedPreviousExpense / previousExpense) * 100 : null;
+
+  const matchCoverageRows = [
+    {
+      label: "Matched current expense",
+      value: `${formatNumber(matchedCurrentExpense)}${matchedCoverageCurrentPct === null ? "" : ` (${formatPercent(matchedCoverageCurrentPct)})`}`,
+    },
+    {
+      label: "Matched previous expense",
+      value: `${formatNumber(matchedPreviousExpense)}${matchedCoveragePreviousPct === null ? "" : ` (${formatPercent(matchedCoveragePreviousPct)})`}`,
+    },
+    {
+      label: "Unmatched current-only expense",
+      value: formatNumber(unmatchedCurrentOnlyExpense),
+    },
+    {
+      label: "Unmatched previous-only expense",
+      value: formatNumber(unmatchedPreviousOnlyExpense),
+    },
+  ];
+
   const bridgeWaterfallRows = [
     { label: "Previous month amount", value: previousExpense ?? 0 },
     { label: "Change: month-length (calendar)", value: calendarEffectForBridge },
@@ -1880,6 +1910,25 @@ function PeriodAnalysis({
             <li key={`residual-explain-${idx}`}>{item}</li>
           ))}
         </ul>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+        <p className="text-sm font-medium text-slate-900">Match coverage diagnostics</p>
+        <p className="mt-1 text-xs text-slate-500">
+          Residual is often driven by unmatched keys between periods. Aim for &gt;90% matched coverage on both periods.
+        </p>
+        <div className="mt-3 overflow-x-auto">
+          <table className="min-w-full border-collapse text-left text-sm">
+            <tbody>
+              {matchCoverageRows.map((row, idx) => (
+                <tr key={`match-coverage-${idx}`} className="odd:bg-white even:bg-slate-50/60">
+                  <td className="border-t border-slate-200 px-3 py-2 text-slate-600">{row.label}</td>
+                  <td className="border-t border-slate-200 px-3 py-2 font-medium text-slate-900">{row.value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="mt-5">
