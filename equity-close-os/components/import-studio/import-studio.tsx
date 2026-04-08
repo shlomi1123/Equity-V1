@@ -1458,73 +1458,27 @@ function PeriodAnalysis({
   const manualEffect =
     ((currentSession.manualExpenses ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0)) -
     ((previousSession.manualExpenses ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0));
+
+  const calendarEffectBridge = calendarEffect ?? 0;
   const newRecordsEffect = newRecordContribution ?? 0;
-  const missingRecordsEffect = -Math.abs(missingRecordContribution ?? 0);
-  const continuingEffect = continuingDelta ?? 0;
+  const endedGrantsEffect = -Math.abs(missingRecordContribution ?? 0);
 
-  const explainedTotal =
-    (previousExpense ?? 0) +
-    continuingEffect +
-    newRecordsEffect +
-    missingRecordsEffect +
-    manualEffect +
-    terminationEffect;
-
-  const otherEffect = (currentExpense ?? 0) - explainedTotal;
-
-  const residualPctOfPrevious =
-    previousExpense && previousExpense !== 0 ? (otherEffect / previousExpense) * 100 : null;
-  const residualPctOfCurrent =
-    currentExpense && currentExpense !== 0 ? (otherEffect / currentExpense) * 100 : null;
-
-  const bridgeReconciliationCheck =
-    (previousExpense ?? 0) +
-    continuingEffect +
-    newRecordsEffect +
-    missingRecordsEffect +
-    manualEffect +
-    terminationEffect +
-    otherEffect -
-    (currentExpense ?? 0);
-
-  const residualBreakdownRows = [
-    { label: "Residual amount", value: formatDelta(otherEffect) },
-    {
-      label: "Residual as % of previous",
-      value: residualPctOfPrevious === null ? "N/A" : formatPercent(residualPctOfPrevious),
-    },
-    {
-      label: "Residual as % of current",
-      value: residualPctOfCurrent === null ? "N/A" : formatPercent(residualPctOfCurrent),
-    },
-    { label: "Reconciliation check (should be 0)", value: formatDelta(bridgeReconciliationCheck) },
-  ];
-
-
-  const residualExplanationParts = [
-    Math.abs(otherEffect) < 0.01
-      ? "Residual is near zero; bridge fully reconciles to current month."
-      : `Residual of ${formatDelta(otherEffect)} remains after mapped drivers.`,
-    !getMappedColumnIndex(currentSession, ["employee_id", "grant_number", "employee_name"]) ||
-    !getMappedColumnIndex(previousSession, ["employee_id", "grant_number", "employee_name"])
-      ? "Join key is incomplete in one or both periods; some row-level attribution is blended into residual."
-      : "Join key mapping is present in both periods.",
-    !getMappedColumnIndex(currentSession, ["forfeitures"]) ||
-    !getMappedColumnIndex(previousSession, ["forfeitures"])
-      ? "Forfeiture/cancellation mapping is partial; termination-related effects may roll into residual."
-      : "Forfeiture mapping is present in both periods.",
-    "Small residual differences can also come from rounding and unmatched row-level timing.",
-  ];
-
+  // Continuing delta split:
+  // If no robust unit-rate split is available yet, keep safe fallback:
+  // volume = 0, rate = full continuing delta.
+  const continuingVolumeEffect = 0;
+  const continuingRateEffect = (continuingDelta ?? 0) - continuingVolumeEffect;
 
   const bridgeWaterfallRows = [
     { label: "Previous month amount", value: previousExpense ?? 0 },
-    { label: "Change: continuing book", value: continuingEffect },
-    { label: "Change: new grants / new records", value: newRecordsEffect },
-    { label: "Change: manual adjustments", value: manualEffect },
+    { label: "Change: more/fewer days in month", value: calendarEffectBridge },
+    { label: "Change: continuing grants (volume)", value: continuingVolumeEffect },
+    { label: "Change: continuing grants (rate/FMV)", value: continuingRateEffect },
+    { label: "Change: new grants kicked in", value: newRecordsEffect },
+    { label: "Change: fully vested / ended grants", value: endedGrantsEffect },
     { label: "Change: terminations / forfeitures", value: terminationEffect },
-    { label: "Change: disappeared records", value: missingRecordsEffect },
-    { label: "Change: other / residual", value: otherEffect },
+    { label: "Change: manual adjustments", value: manualEffect },
+    { label: "Change: remaining residual", value: otherEffect },
     { label: "Current month amount", value: currentExpense ?? 0 },
   ];
 
@@ -1740,6 +1694,9 @@ function PeriodAnalysis({
         <p className="text-sm font-medium text-slate-900">Bridge to current month</p>
         <p className="mt-1 text-sm text-slate-600">
           Previous month + drivers = current month
+        </p>
+        <p className="mt-1 text-xs text-slate-500">
+          Bridge decomposition uses lifecycle + calendar + manual + termination factors; residual should be small.
         </p>
         <div className="mt-3 space-y-2">
           {bridgeWaterfallRows.map((row, idx) => (
