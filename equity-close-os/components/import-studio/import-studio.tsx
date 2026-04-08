@@ -27,12 +27,6 @@ type MappingItem = {
   customValue: string;
 };
 
-type ManualExpenseLine = {
-  id: string;
-  description: string;
-  amount: number;
-};
-
 type ReusableTemplate = {
   id: string;
   signature: string;
@@ -60,7 +54,6 @@ type SessionCard = {
   templateSignature: string | null;
   matchedReusableTemplateId: string | null;
   templateName: string;
-  manualExpenses: ManualExpenseLine[];
 };
 
 const REUSABLE_TEMPLATE_STORAGE_KEY = "equity-close-os:mapping-profiles:v1";
@@ -190,7 +183,6 @@ const INITIAL_SESSIONS: Record<PeriodKey, SessionCard> = {
     templateSignature: null,
     matchedReusableTemplateId: null,
     templateName: "",
-    manualExpenses: [],
   },
   previous: {
     key: "previous",
@@ -1232,67 +1224,8 @@ function PeriodAnalysis({
   const currentInfo = inferPeriodInfo(currentSession);
   const previousInfo = inferPeriodInfo(previousSession);
 
-  type ManualAdjustment = { id: string; description: string; amount: number };
-
-  const [manualCurrentAdjustments, setManualCurrentAdjustments] = useState<ManualAdjustment[]>([]);
-  const [manualPreviousAdjustments, setManualPreviousAdjustments] = useState<ManualAdjustment[]>([]);
-
-  function addManualAdjustment(period: "current" | "previous") {
-    const newItem: ManualAdjustment = {
-      id: crypto.randomUUID(),
-      description: "",
-      amount: 0,
-    };
-    if (period === "current") {
-      setManualCurrentAdjustments((prev) => [...prev, newItem]);
-    } else {
-      setManualPreviousAdjustments((prev) => [...prev, newItem]);
-    }
-  }
-
-  function updateManualAdjustment(
-    period: "current" | "previous",
-    id: string,
-    patch: Partial<ManualAdjustment>,
-  ) {
-    const updater = (items: ManualAdjustment[]) =>
-      items.map((item) => (item.id === id ? { ...item, ...patch } : item));
-
-    if (period === "current") {
-      setManualCurrentAdjustments((prev) => updater(prev));
-    } else {
-      setManualPreviousAdjustments((prev) => updater(prev));
-    }
-  }
-
-  function removeManualAdjustment(period: "current" | "previous", id: string) {
-    if (period === "current") {
-      setManualCurrentAdjustments((prev) => prev.filter((item) => item.id !== id));
-    } else {
-      setManualPreviousAdjustments((prev) => prev.filter((item) => item.id !== id));
-    }
-  }
-
-  const manualCurrentTotal = manualCurrentAdjustments.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-  const manualPreviousTotal = manualPreviousAdjustments.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-
-  const currentExpenseBase = getFieldTotal(currentSession, "current_period_expense");
-  const previousExpenseBase = getFieldTotal(previousSession, "current_period_expense");
-
-  const currentManualTotal = (currentSession.manualExpenses ?? []).reduce(
-    (sum, item) => sum + (Number(item.amount) || 0),
-    0,
-  );
-  const previousManualTotal = (previousSession.manualExpenses ?? []).reduce(
-    (sum, item) => sum + (Number(item.amount) || 0),
-    0,
-  );
-
-  const currentExpense =
-    currentExpenseBase === null ? (currentManualTotal ? currentManualTotal : null) : currentExpenseBase + currentManualTotal;
-  const previousExpense =
-    previousExpenseBase === null ? (previousManualTotal ? previousManualTotal : null) : previousExpenseBase + previousManualTotal;
-
+  const currentExpense = getFieldTotal(currentSession, "current_period_expense");
+  const previousExpense = getFieldTotal(previousSession, "current_period_expense");
   const currentForfeitures = getFieldTotal(currentSession, "forfeitures");
   const previousForfeitures = getFieldTotal(previousSession, "forfeitures");
 
@@ -1308,15 +1241,6 @@ function PeriodAnalysis({
   // Keep existing variable name for downstream compatibility:
   // represent as negative effect on bridge (drag).
   const forfeitureDelta = cancellationDrag === null ? null : -Math.abs(cancellationDrag);
-  const adjustedCurrentExpense = currentExpense === null ? null : currentExpense + manualCurrentTotal;
-  const adjustedPreviousExpense = previousExpense === null ? null : previousExpense + manualPreviousTotal;
-  const adjustedRawDelta =
-    adjustedCurrentExpense !== null && adjustedPreviousExpense !== null
-      ? adjustedCurrentExpense - adjustedPreviousExpense
-      : null;
-
-  const manualAdjustmentNet = manualCurrentTotal - manualPreviousTotal;
-
   const rawDelta =
     currentExpense !== null && previousExpense !== null ? currentExpense - previousExpense : null;
   const rawDeltaPercent =
@@ -1430,13 +1354,6 @@ function PeriodAnalysis({
 
   const topMover = topMovers[0] ?? null;
 
-  function quickCopyText(text: string, label: string) {
-    navigator.clipboard.writeText(text).then(
-      () => window.alert(`${label} copied to clipboard.`),
-      () => window.alert(`Could not copy ${label.toLowerCase()}.`)
-    );
-  }
-
   const managementSummaryParts = [
     rawDelta === null
       ? "Map Current Period Expense in both files to unlock management summary output."
@@ -1450,9 +1367,6 @@ function PeriodAnalysis({
     newKeys.length || missingKeys.length
       ? `New records contributed ${formatDelta(newRecordContribution)}, while records that disappeared versus prior month removed ${formatNumber(missingRecordContribution)}.`
       : "New and missing record analysis will appear when the join key is mapped in both files.",
-    manualAdjustmentNet !== 0
-      ? `Manual adjustments contributed ${formatDelta(manualAdjustmentNet)} net between periods (outside E*TRADE uploads).`
-      : "No net manual adjustment difference between periods.",
     forfeitureDelta !== null
       ? `Cancellation / forfeiture drag contributed ${formatDelta(forfeitureDelta)} (negative indicates stronger drag on expense bridge).`
       : "Map a forfeitures / cancelled equity field to quantify termination-related cancellations.",
@@ -1673,89 +1587,12 @@ function PeriodAnalysis({
         </div>
       </div>
 
-      
-
-          <div className="rounded-2xl border border-slate-200 p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-slate-900">Previous period manual expenses</p>
-              <button
-                type="button"
-                onClick={() => addManualAdjustment("previous")}
-                className="rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
-              >
-                + Add
-              </button>
-            </div>
-            <div className="mt-3 space-y-2">
-              {manualPreviousAdjustments.map((item) => (
-                <div key={item.id} className="grid grid-cols-12 gap-2">
-                  <input
-                    value={item.description}
-                    onChange={(e) => updateManualAdjustment("previous", item.id, { description: e.target.value })}
-                    placeholder="Description"
-                    className="col-span-7 rounded-lg border border-slate-200 px-2 py-1 text-sm"
-                  />
-                  <input
-                    type="number"
-                    value={item.amount}
-                    onChange={(e) => updateManualAdjustment("previous", item.id, { amount: Number(e.target.value) || 0 })}
-                    placeholder="Amount"
-                    className="col-span-4 rounded-lg border border-slate-200 px-2 py-1 text-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeManualAdjustment("previous", item.id)}
-                    className="col-span-1 rounded-lg border border-red-200 text-xs text-red-600 hover:bg-red-50"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-            <p className="mt-3 text-sm text-slate-700">Manual subtotal: {formatNumber(manualPreviousTotal)}</p>
-          </div>
-        </div>
-
-        
-      
       <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-5">
         <p className="text-sm font-medium text-slate-900">Management summary</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => quickCopyText(managementSummaryParts.join("\n"), "Management summary")}
-            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
-          >
-            Copy management summary
-          </button>
-          <button
-            type="button"
-            onClick={() => quickCopyText(
-              [
-                "Equity Close Executive Pack",
-                "--------------------------",
-                ...managementSummaryParts
-              ].join("\n"),
-              "Executive pack"
-            )}
-            className="rounded-xl border border-slate-900 bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800"
-          >
-            Copy executive pack
-          </button>
-        </div>
         <div className="mt-3 space-y-3 text-sm leading-6 text-slate-600">
           {managementSummaryParts.map((part, index) => (
             <p key={`management-summary-${index}`}>{part}</p>
           ))}
-        </div>
-
-        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-sm font-medium text-slate-900">Assumptions & data quality</p>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600">
-            <li>Calendar normalization uses inferred month lengths when available.</li>
-            <li>Join-key quality improves when Employee ID + Grant Number are mapped in both files.</li>
-            <li>Cancellation impact requires Forfeitures / Cancelled Equity mapped in both files.</li>
-          </ul>
         </div>
 
         {analysisQualityWarnings.length > 0 && (
@@ -1955,45 +1792,6 @@ export function ImportStudio() {
       setReusableTemplates([]);
     }
   }, []);
-
-  function addManualExpenseLine(period: PeriodKey) {
-    setSessions((prev) => ({
-      ...prev,
-      [period]: {
-        ...prev[period],
-        manualExpenses: [
-          ...(prev[period].manualExpenses ?? []),
-          { id: crypto.randomUUID(), description: "", amount: 0 },
-        ],
-      },
-    }));
-  }
-
-  function updateManualExpenseLine(
-    period: PeriodKey,
-    id: string,
-    patch: Partial<ManualExpenseLine>,
-  ) {
-    setSessions((prev) => ({
-      ...prev,
-      [period]: {
-        ...prev[period],
-        manualExpenses: (prev[period].manualExpenses ?? []).map((item) =>
-          item.id === id ? { ...item, ...patch } : item,
-        ),
-      },
-    }));
-  }
-
-  function removeManualExpenseLine(period: PeriodKey, id: string) {
-    setSessions((prev) => ({
-      ...prev,
-      [period]: {
-        ...prev[period],
-        manualExpenses: (prev[period].manualExpenses ?? []).filter((item) => item.id !== id),
-      },
-    }));
-  }
 
   const activeSession = useMemo(() => sessions[activePeriod], [sessions, activePeriod]);
   const activeDerivedTable = useMemo(
@@ -2274,62 +2072,7 @@ export function ImportStudio() {
               />
 
               <section className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
-                      <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">Manual expenses</p>
-            <p className="mt-1 text-sm text-slate-600">
-              Add expenses handled outside E*TRADE for the selected period.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => addManualExpenseLine(activePeriod)}
-            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100"
-          >
-            + Add line
-          </button>
-        </div>
-
-        <div className="mt-4 space-y-2">
-          {(activeSession.manualExpenses ?? []).map((item) => (
-            <div key={item.id} className="grid grid-cols-12 gap-2">
-              <input
-                value={item.description}
-                onChange={(e) =>
-                  updateManualExpenseLine(activePeriod, item.id, { description: e.target.value })
-                }
-                placeholder="Description (e.g. Off-platform adjustment)"
-                className="col-span-8 rounded-xl border border-slate-200 px-3 py-2 text-sm"
-              />
-              <input
-                type="number"
-                value={item.amount}
-                onChange={(e) =>
-                  updateManualExpenseLine(activePeriod, item.id, { amount: Number(e.target.value) || 0 })
-                }
-                placeholder="Amount"
-                className="col-span-3 rounded-xl border border-slate-200 px-3 py-2 text-sm"
-              />
-              <button
-                type="button"
-                onClick={() => removeManualExpenseLine(activePeriod, item.id)}
-                className="col-span-1 rounded-xl border border-red-200 text-xs text-red-600 hover:bg-red-50"
-              >
-                ✕
-              </button>
-            </div>
-          ))}
-        </div>
-
-        <p className="mt-3 text-sm text-slate-700">
-          Manual subtotal ({activePeriod === "current" ? "Current" : "Previous"}):
-          {" "}
-          {formatNumber((activeSession.manualExpenses ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0))}
-        </p>
-      </div>
-
-<p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">Workspace summary</p>
+                <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">Workspace summary</p>
                 <h2 className="mt-2 text-xl font-semibold">Status</h2>
 
                 <div className="mt-5 space-y-3">
@@ -2360,53 +2103,6 @@ export function ImportStudio() {
                   </div>
                 </div>
               </section>
-<div className="mt-5 rounded-3xl border border-slate-200 bg-white p-5">
-        <p className="text-sm font-medium text-slate-900">Manual expenses (outside E*TRADE)</p>
-        <p className="mt-1 text-sm text-slate-600">
-          Add period-specific manual expenses with description. These are added on top of mapped report totals.
-        </p>
-
-        <div className="mt-4 grid gap-4 xl:grid-cols-2">
-          <div className="rounded-2xl border border-slate-200 p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-slate-900">Current period manual expenses</p>
-              <button
-                type="button"
-                onClick={() => addManualAdjustment("current")}
-                className="rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
-              >
-                + Add
-              </button>
-            </div>
-            <div className="mt-3 space-y-2">
-              {manualCurrentAdjustments.map((item) => (
-                <div key={item.id} className="grid grid-cols-12 gap-2">
-                  <input
-                    value={item.description}
-                    onChange={(e) => updateManualAdjustment("current", item.id, { description: e.target.value })}
-                    placeholder="Description"
-                    className="col-span-7 rounded-lg border border-slate-200 px-2 py-1 text-sm"
-                  />
-                  <input
-                    type="number"
-                    value={item.amount}
-                    onChange={(e) => updateManualAdjustment("current", item.id, { amount: Number(e.target.value) || 0 })}
-                    placeholder="Amount"
-                    className="col-span-4 rounded-lg border border-slate-200 px-2 py-1 text-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeManualAdjustment("current", item.id)}
-                    className="col-span-1 rounded-lg border border-red-200 text-xs text-red-600 hover:bg-red-50"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-            <p className="mt-3 text-sm text-slate-700">Manual subtotal: {formatNumber(manualCurrentTotal)}</p>
-          </div>
-
             </div>
 
             <HeaderControlBar
