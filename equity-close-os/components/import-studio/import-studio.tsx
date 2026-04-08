@@ -1494,6 +1494,50 @@ function PeriodAnalysis({
     { label: "Current month amount", value: currentExpense ?? 0 },
   ];
 
+  const residualAmount =
+    (currentExpense ?? 0) -
+    (
+      (previousExpense ?? 0) +
+      (continuingDelta ?? 0) +
+      (newRecordContribution ?? 0) -
+      Math.abs(missingRecordContribution ?? 0) +
+      (
+        ((currentSession.manualExpenses ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0)) -
+        ((previousSession.manualExpenses ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0))
+      ) +
+      (forfeitureDelta ?? 0)
+    );
+
+  const hasJoinKeyCoverage =
+    !!getMappedColumnIndex(currentSession, ["employee_id", "grant_number", "employee_name"]) &&
+    !!getMappedColumnIndex(previousSession, ["employee_id", "grant_number", "employee_name"]);
+
+  const hasForfeitureCoverage =
+    !!getMappedColumnIndex(currentSession, ["forfeitures"]) &&
+    !!getMappedColumnIndex(previousSession, ["forfeitures"]);
+
+  const residualMappingCoverageEffect = hasJoinKeyCoverage ? 0 : residualAmount * 0.6;
+  const residualForfeitureGapEffect = hasForfeitureCoverage ? 0 : residualAmount * 0.25;
+  const residualRoundingTimingEffect =
+    residualAmount - residualMappingCoverageEffect - residualForfeitureGapEffect;
+
+  const residualAttributionRows = [
+    { label: "Residual total", value: formatDelta(residualAmount) },
+    {
+      label: "Mapping coverage effect (heuristic)",
+      value: formatDelta(residualMappingCoverageEffect),
+    },
+    {
+      label: "Forfeiture mapping gap effect (heuristic)",
+      value: formatDelta(residualForfeitureGapEffect),
+    },
+    {
+      label: "Rounding / timing remainder",
+      value: formatDelta(residualRoundingTimingEffect),
+    },
+  ];
+
+
   const smartCards = [
     {
       title: "Raw delta",
@@ -1782,33 +1826,31 @@ function PeriodAnalysis({
           </table>
         </div>
 
+        <div className="mt-3 overflow-x-auto">
+          <table className="min-w-full border-collapse text-left text-sm">
+            <tbody>
+              {residualAttributionRows.map((row, idx) => (
+                <tr key={`residual-attr-${idx}`} className="odd:bg-white even:bg-slate-50/60">
+                  <td className="border-t border-slate-200 px-3 py-2 text-slate-600">{row.label}</td>
+                  <td className="border-t border-slate-200 px-3 py-2 font-medium text-slate-900">{row.value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
         <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-600">
           {[
-            Math.abs(
-              (currentExpense ?? 0) -
-                (
-                  (previousExpense ?? 0) +
-                  (continuingDelta ?? 0) +
-                  (newRecordContribution ?? 0) -
-                  Math.abs(missingRecordContribution ?? 0) +
-                  (
-                    ((currentSession.manualExpenses ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0)) -
-                    ((previousSession.manualExpenses ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0))
-                  ) +
-                  (forfeitureDelta ?? 0)
-                )
-            ) < 0.01
+            Math.abs(residualAmount) < 0.01
               ? "Residual is near zero; bridge fully reconciles to current month."
-              : "Residual remains after mapped drivers; likely from mapping gaps, timing mismatches, or rounding.",
-            !getMappedColumnIndex(currentSession, ["employee_id", "grant_number", "employee_name"]) ||
-            !getMappedColumnIndex(previousSession, ["employee_id", "grant_number", "employee_name"])
-              ? "Join key is incomplete in one or both periods; some attribution may flow into residual."
-              : "Join key mapping is present in both periods.",
-            !getMappedColumnIndex(currentSession, ["forfeitures"]) ||
-            !getMappedColumnIndex(previousSession, ["forfeitures"])
-              ? "Forfeiture mapping is partial; termination-related effects may be blended into residual."
-              : "Forfeiture mapping is present in both periods.",
-            "Small differences can also come from rounding and row-level timing cutoffs."
+              : "Residual remains after mapped drivers and is decomposed above.",
+            hasJoinKeyCoverage
+              ? "Join key mapping is present in both periods."
+              : "Join key coverage is partial; mapping coverage effect is applied.",
+            hasForfeitureCoverage
+              ? "Forfeiture mapping is present in both periods."
+              : "Forfeiture mapping is partial; forfeiture-gap effect is applied.",
+            "Heuristic attribution is shown to explain residual drivers until full grant-level decomposition is enabled."
           ].map((item, idx) => (
             <li key={`residual-explain-${idx}`}>{item}</li>
           ))}
