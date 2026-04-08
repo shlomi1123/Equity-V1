@@ -1454,6 +1454,33 @@ function PeriodAnalysis({
     { label: "Current month total", value: currentExpense ?? 0 },
   ];
 
+  const terminationEffect = forfeitureDelta ?? 0;
+  const manualEffect = manualAdjustmentNet ?? 0;
+  const newRecordsEffect = newRecordContribution ?? 0;
+  const missingRecordsEffect = -Math.abs(missingRecordContribution ?? 0);
+  const continuingEffect = continuingDelta ?? 0;
+
+  const explainedTotal =
+    (previousExpense ?? 0) +
+    continuingEffect +
+    newRecordsEffect +
+    missingRecordsEffect +
+    manualEffect +
+    terminationEffect;
+
+  const otherEffect = (currentExpense ?? 0) - explainedTotal;
+
+  const bridgeWaterfallRows = [
+    { label: "Previous month amount", value: previousExpense ?? 0 },
+    { label: "Change: continuing book", value: continuingEffect },
+    { label: "Change: new grants / new records", value: newRecordsEffect },
+    { label: "Change: manual adjustments", value: manualEffect },
+    { label: "Change: terminations / forfeitures", value: terminationEffect },
+    { label: "Change: disappeared records", value: missingRecordsEffect },
+    { label: "Change: other / residual", value: otherEffect },
+    { label: "Current month amount", value: currentExpense ?? 0 },
+  ];
+
   const smartCards = [
     {
       title: "Raw delta",
@@ -1659,6 +1686,21 @@ function PeriodAnalysis({
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-5">
+        <p className="text-sm font-medium text-slate-900">Bridge to current month</p>
+        <p className="mt-1 text-sm text-slate-600">
+          Previous month + drivers = current month
+        </p>
+        <div className="mt-3 space-y-2">
+          {bridgeWaterfallRows.map((row, idx) => (
+            <div key={`bridge-row-${idx}`} className="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2">
+              <span className="text-sm text-slate-600">{row.label}</span>
+              <span className="text-sm font-semibold text-slate-900">{formatDelta(row.value)}</span>
+            </div>
+          ))}
         </div>
       </div>
 
