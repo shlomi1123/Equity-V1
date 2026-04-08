@@ -1716,11 +1716,7 @@ function PeriodAnalysis({
           </div>
         </div>
 
-        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-          <p>Adjusted current total: {adjustedCurrentExpense === null ? "N/A" : formatNumber(adjustedCurrentExpense)}</p>
-          <p>Adjusted previous total: {adjustedPreviousExpense === null ? "N/A" : formatNumber(adjustedPreviousExpense)}</p>
-          <p>Adjusted delta: {adjustedRawDelta === null ? "N/A" : formatDelta(adjustedRawDelta)}</p>
-        </div>
+        
       </div>
 
       <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-5">
