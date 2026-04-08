@@ -1315,6 +1315,8 @@ function PeriodAnalysis({
       ? adjustedCurrentExpense - adjustedPreviousExpense
       : null;
 
+  const manualAdjustmentNet = manualCurrentTotal - manualPreviousTotal;
+
   const rawDelta =
     currentExpense !== null && previousExpense !== null ? currentExpense - previousExpense : null;
   const rawDeltaPercent =
@@ -1448,6 +1450,9 @@ function PeriodAnalysis({
     newKeys.length || missingKeys.length
       ? `New records contributed ${formatDelta(newRecordContribution)}, while records that disappeared versus prior month removed ${formatNumber(missingRecordContribution)}.`
       : "New and missing record analysis will appear when the join key is mapped in both files.",
+    manualAdjustmentNet !== 0
+      ? `Manual adjustments contributed ${formatDelta(manualAdjustmentNet)} net between periods (outside E*TRADE uploads).`
+      : "No net manual adjustment difference between periods.",
     forfeitureDelta !== null
       ? `Cancellation / forfeiture drag contributed ${formatDelta(forfeitureDelta)} (negative indicates stronger drag on expense bridge).`
       : "Map a forfeitures / cancelled equity field to quantify termination-related cancellations.",
@@ -1668,52 +1673,7 @@ function PeriodAnalysis({
         </div>
       </div>
 
-      <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-5">
-        <p className="text-sm font-medium text-slate-900">Manual expenses (outside E*TRADE)</p>
-        <p className="mt-1 text-sm text-slate-600">
-          Add period-specific manual expenses with description. These are added on top of mapped report totals.
-        </p>
-
-        <div className="mt-4 grid gap-4 xl:grid-cols-2">
-          <div className="rounded-2xl border border-slate-200 p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-slate-900">Current period manual expenses</p>
-              <button
-                type="button"
-                onClick={() => addManualAdjustment("current")}
-                className="rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
-              >
-                + Add
-              </button>
-            </div>
-            <div className="mt-3 space-y-2">
-              {manualCurrentAdjustments.map((item) => (
-                <div key={item.id} className="grid grid-cols-12 gap-2">
-                  <input
-                    value={item.description}
-                    onChange={(e) => updateManualAdjustment("current", item.id, { description: e.target.value })}
-                    placeholder="Description"
-                    className="col-span-7 rounded-lg border border-slate-200 px-2 py-1 text-sm"
-                  />
-                  <input
-                    type="number"
-                    value={item.amount}
-                    onChange={(e) => updateManualAdjustment("current", item.id, { amount: Number(e.target.value) || 0 })}
-                    placeholder="Amount"
-                    className="col-span-4 rounded-lg border border-slate-200 px-2 py-1 text-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeManualAdjustment("current", item.id)}
-                    className="col-span-1 rounded-lg border border-red-200 text-xs text-red-600 hover:bg-red-50"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-            <p className="mt-3 text-sm text-slate-700">Manual subtotal: {formatNumber(manualCurrentTotal)}</p>
-          </div>
+      
 
           <div className="rounded-2xl border border-slate-200 p-4">
             <div className="flex items-center justify-between">
@@ -2405,6 +2365,53 @@ export function ImportStudio() {
                   </div>
                 </div>
               </section>
+<div className="mt-5 rounded-3xl border border-slate-200 bg-white p-5">
+        <p className="text-sm font-medium text-slate-900">Manual expenses (outside E*TRADE)</p>
+        <p className="mt-1 text-sm text-slate-600">
+          Add period-specific manual expenses with description. These are added on top of mapped report totals.
+        </p>
+
+        <div className="mt-4 grid gap-4 xl:grid-cols-2">
+          <div className="rounded-2xl border border-slate-200 p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-slate-900">Current period manual expenses</p>
+              <button
+                type="button"
+                onClick={() => addManualAdjustment("current")}
+                className="rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
+              >
+                + Add
+              </button>
+            </div>
+            <div className="mt-3 space-y-2">
+              {manualCurrentAdjustments.map((item) => (
+                <div key={item.id} className="grid grid-cols-12 gap-2">
+                  <input
+                    value={item.description}
+                    onChange={(e) => updateManualAdjustment("current", item.id, { description: e.target.value })}
+                    placeholder="Description"
+                    className="col-span-7 rounded-lg border border-slate-200 px-2 py-1 text-sm"
+                  />
+                  <input
+                    type="number"
+                    value={item.amount}
+                    onChange={(e) => updateManualAdjustment("current", item.id, { amount: Number(e.target.value) || 0 })}
+                    placeholder="Amount"
+                    className="col-span-4 rounded-lg border border-slate-200 px-2 py-1 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeManualAdjustment("current", item.id)}
+                    className="col-span-1 rounded-lg border border-red-200 text-xs text-red-600 hover:bg-red-50"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-sm text-slate-700">Manual subtotal: {formatNumber(manualCurrentTotal)}</p>
+          </div>
+
             </div>
 
             <HeaderControlBar
