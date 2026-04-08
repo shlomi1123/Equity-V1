@@ -1469,28 +1469,37 @@ function PeriodAnalysis({
   const continuingVolumeEffect = 0;
   const continuingRateEffect = (continuingDelta ?? 0) - continuingVolumeEffect;
 
+  const manualEffectForBridge =
+    ((currentSession.manualExpenses ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0)) -
+    ((previousSession.manualExpenses ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0));
+
+  const calendarEffectForBridge = calendarEffect ?? 0;
+  const continuingEffectForBridge = continuingDelta ?? 0;
+  const newGrantsEffectForBridge = newRecordContribution ?? 0;
+  const endedGrantsEffectForBridge = -Math.abs(missingRecordContribution ?? 0);
+  const terminationsEffectForBridge = forfeitureDelta ?? 0;
+
+  const residualEffectForBridge =
+    (currentExpense ?? 0) -
+    (
+      (previousExpense ?? 0) +
+      calendarEffectForBridge +
+      continuingEffectForBridge +
+      newGrantsEffectForBridge +
+      endedGrantsEffectForBridge +
+      terminationsEffectForBridge +
+      manualEffectForBridge
+    );
+
   const bridgeWaterfallRows = [
     { label: "Previous month amount", value: previousExpense ?? 0 },
-    { label: "Change: more/fewer days in month", value: calendarEffectBridge },
-    { label: "Change: continuing grants (volume)", value: continuingVolumeEffect },
-    { label: "Change: continuing grants (rate/FMV)", value: continuingRateEffect },
-    { label: "Change: new grants kicked in", value: newRecordsEffect },
-    { label: "Change: fully vested / ended grants", value: endedGrantsEffect },
-    { label: "Change: terminations / forfeitures", value: terminationEffect },
-    { label: "Change: manual adjustments", value: manualEffect },
-    { label: "Change: remaining residual", value:
-      (currentExpense ?? 0) - (
-        (previousExpense ?? 0) +
-        (continuingDelta ?? 0) +
-        (newRecordContribution ?? 0) -
-        Math.abs(missingRecordContribution ?? 0) +
-        (
-          ((currentSession.manualExpenses ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0)) -
-          ((previousSession.manualExpenses ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0))
-        ) +
-        (forfeitureDelta ?? 0)
-      )
-    },
+    { label: "Change: month-length (calendar)", value: calendarEffectForBridge },
+    { label: "Change: continuing grants", value: continuingEffectForBridge },
+    { label: "Change: new grants kicked in", value: newGrantsEffectForBridge },
+    { label: "Change: fully vested / ended grants", value: endedGrantsEffectForBridge },
+    { label: "Change: terminations / forfeitures", value: terminationsEffectForBridge },
+    { label: "Change: manual adjustments", value: manualEffectForBridge },
+    { label: "Change: residual (unattributed)", value: residualEffectForBridge },
     { label: "Current month amount", value: currentExpense ?? 0 },
   ];
 
@@ -1765,7 +1774,7 @@ function PeriodAnalysis({
       </div>
 
       <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-        <p className="text-sm font-medium text-slate-900">Residual explanation</p>
+        <p className="text-sm font-medium text-slate-900">Residual explanation (after all mapped factors)</p>
 
         <div className="mt-3 overflow-x-auto">
           <table className="min-w-full border-collapse text-left text-sm">
@@ -1829,12 +1838,28 @@ function PeriodAnalysis({
         <div className="mt-3 overflow-x-auto">
           <table className="min-w-full border-collapse text-left text-sm">
             <tbody>
-              {residualAttributionRows.map((row, idx) => (
-                <tr key={`residual-attr-${idx}`} className="odd:bg-white even:bg-slate-50/60">
-                  <td className="border-t border-slate-200 px-3 py-2 text-slate-600">{row.label}</td>
-                  <td className="border-t border-slate-200 px-3 py-2 font-medium text-slate-900">{row.value}</td>
-                </tr>
-              ))}
+              {[
+              { label: "Residual total", value: formatDelta(residualEffectForBridge) },
+              {
+                label: "Reconciliation check (should be 0)",
+                value: formatDelta(
+                  (previousExpense ?? 0) +
+                    calendarEffectForBridge +
+                    continuingEffectForBridge +
+                    newGrantsEffectForBridge +
+                    endedGrantsEffectForBridge +
+                    terminationsEffectForBridge +
+                    manualEffectForBridge +
+                    residualEffectForBridge -
+                    (currentExpense ?? 0)
+                ),
+              },
+            ].map((row, idx) => (
+              <tr key={`residual-attr-${idx}`} className="odd:bg-white even:bg-slate-50/60">
+                <td className="border-t border-slate-200 px-3 py-2 text-slate-600">{row.label}</td>
+                <td className="border-t border-slate-200 px-3 py-2 font-medium text-slate-900">{row.value}</td>
+              </tr>
+            ))}
             </tbody>
           </table>
         </div>
