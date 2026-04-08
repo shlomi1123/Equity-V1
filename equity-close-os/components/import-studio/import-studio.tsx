@@ -1472,6 +1472,35 @@ function PeriodAnalysis({
 
   const otherEffect = (currentExpense ?? 0) - explainedTotal;
 
+  const residualPctOfPrevious =
+    previousExpense && previousExpense !== 0 ? (otherEffect / previousExpense) * 100 : null;
+  const residualPctOfCurrent =
+    currentExpense && currentExpense !== 0 ? (otherEffect / currentExpense) * 100 : null;
+
+  const bridgeReconciliationCheck =
+    (previousExpense ?? 0) +
+    continuingEffect +
+    newRecordsEffect +
+    missingRecordsEffect +
+    manualEffect +
+    terminationEffect +
+    otherEffect -
+    (currentExpense ?? 0);
+
+  const residualBreakdownRows = [
+    { label: "Residual amount", value: formatDelta(otherEffect) },
+    {
+      label: "Residual as % of previous",
+      value: residualPctOfPrevious === null ? "N/A" : formatPercent(residualPctOfPrevious),
+    },
+    {
+      label: "Residual as % of current",
+      value: residualPctOfCurrent === null ? "N/A" : formatPercent(residualPctOfCurrent),
+    },
+    { label: "Reconciliation check (should be 0)", value: formatDelta(bridgeReconciliationCheck) },
+  ];
+
+
   const residualExplanationParts = [
     Math.abs(otherEffect) < 0.01
       ? "Residual is near zero; bridge fully reconciles to current month."
@@ -1724,7 +1753,21 @@ function PeriodAnalysis({
 
       <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
         <p className="text-sm font-medium text-slate-900">Residual explanation</p>
-        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600">
+
+        <div className="mt-3 overflow-x-auto">
+          <table className="min-w-full border-collapse text-left text-sm">
+            <tbody>
+              {residualBreakdownRows.map((row, idx) => (
+                <tr key={`residual-row-${idx}`} className="odd:bg-white even:bg-slate-50/60">
+                  <td className="border-t border-slate-200 px-3 py-2 text-slate-600">{row.label}</td>
+                  <td className="border-t border-slate-200 px-3 py-2 font-medium text-slate-900">{row.value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-600">
           {residualExplanationParts.map((item, idx) => (
             <li key={`residual-explain-${idx}`}>{item}</li>
           ))}
