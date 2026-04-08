@@ -1783,7 +1783,33 @@ function PeriodAnalysis({
         </div>
 
         <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-600">
-          {residualExplanationParts.map((item, idx) => (
+          {[
+            Math.abs(
+              (currentExpense ?? 0) -
+                (
+                  (previousExpense ?? 0) +
+                  (continuingDelta ?? 0) +
+                  (newRecordContribution ?? 0) -
+                  Math.abs(missingRecordContribution ?? 0) +
+                  (
+                    ((currentSession.manualExpenses ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0)) -
+                    ((previousSession.manualExpenses ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0))
+                  ) +
+                  (forfeitureDelta ?? 0)
+                )
+            ) < 0.01
+              ? "Residual is near zero; bridge fully reconciles to current month."
+              : "Residual remains after mapped drivers; likely from mapping gaps, timing mismatches, or rounding.",
+            !getMappedColumnIndex(currentSession, ["employee_id", "grant_number", "employee_name"]) ||
+            !getMappedColumnIndex(previousSession, ["employee_id", "grant_number", "employee_name"])
+              ? "Join key is incomplete in one or both periods; some attribution may flow into residual."
+              : "Join key mapping is present in both periods.",
+            !getMappedColumnIndex(currentSession, ["forfeitures"]) ||
+            !getMappedColumnIndex(previousSession, ["forfeitures"])
+              ? "Forfeiture mapping is partial; termination-related effects may be blended into residual."
+              : "Forfeiture mapping is present in both periods.",
+            "Small differences can also come from rounding and row-level timing cutoffs."
+          ].map((item, idx) => (
             <li key={`residual-explain-${idx}`}>{item}</li>
           ))}
         </ul>
