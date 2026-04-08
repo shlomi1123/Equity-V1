@@ -1472,6 +1472,22 @@ function PeriodAnalysis({
 
   const otherEffect = (currentExpense ?? 0) - explainedTotal;
 
+  const residualExplanationParts = [
+    Math.abs(otherEffect) < 0.01
+      ? "Residual is near zero; bridge fully reconciles to current month."
+      : `Residual of ${formatDelta(otherEffect)} remains after mapped drivers.`,
+    !getMappedColumnIndex(currentSession, ["employee_id", "grant_number", "employee_name"]) ||
+    !getMappedColumnIndex(previousSession, ["employee_id", "grant_number", "employee_name"])
+      ? "Join key is incomplete in one or both periods; some row-level attribution is blended into residual."
+      : "Join key mapping is present in both periods.",
+    !getMappedColumnIndex(currentSession, ["forfeitures"]) ||
+    !getMappedColumnIndex(previousSession, ["forfeitures"])
+      ? "Forfeiture/cancellation mapping is partial; termination-related effects may roll into residual."
+      : "Forfeiture mapping is present in both periods.",
+    "Small residual differences can also come from rounding and unmatched row-level timing.",
+  ];
+
+
   const bridgeWaterfallRows = [
     { label: "Previous month amount", value: previousExpense ?? 0 },
     { label: "Change: continuing book", value: continuingEffect },
@@ -1704,6 +1720,15 @@ function PeriodAnalysis({
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <p className="text-sm font-medium text-slate-900">Residual explanation</p>
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600">
+          {residualExplanationParts.map((item, idx) => (
+            <li key={`residual-explain-${idx}`}>{item}</li>
+          ))}
+        </ul>
       </div>
 
       <div className="mt-5">
