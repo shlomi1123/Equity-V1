@@ -1478,7 +1478,14 @@ function PeriodAnalysis({
     { label: "Change: fully vested / ended grants", value: endedGrantsEffect },
     { label: "Change: terminations / forfeitures", value: terminationEffect },
     { label: "Change: manual adjustments", value: manualEffect },
-    { label: "Change: remaining residual", value: (currentExpense ?? 0) - explainedTotal },
+    { label: "Change: remaining residual", value: (currentExpense ?? 0) - (
+      (previousExpense ?? 0) +
+      continuingEffect +
+      newRecordsEffect +
+      missingRecordsEffect +
+      manualEffect +
+      terminationEffect
+    ) },
     { label: "Current month amount", value: currentExpense ?? 0 },
   ];
 
