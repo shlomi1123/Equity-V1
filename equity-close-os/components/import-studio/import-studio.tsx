@@ -1455,7 +1455,9 @@ function PeriodAnalysis({
   ];
 
   const terminationEffect = forfeitureDelta ?? 0;
-  const manualEffect = manualAdjustmentNet ?? 0;
+  const manualEffect =
+    ((currentSession.manualExpenses ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0)) -
+    ((previousSession.manualExpenses ?? []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0));
   const newRecordsEffect = newRecordContribution ?? 0;
   const missingRecordsEffect = -Math.abs(missingRecordContribution ?? 0);
   const continuingEffect = continuingDelta ?? 0;
