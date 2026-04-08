@@ -1490,7 +1490,7 @@ function PeriodAnalysis({
         ) +
         (forfeitureDelta ?? 0)
       )
-    }
+    },
     { label: "Current month amount", value: currentExpense ?? 0 },
   ];
 
