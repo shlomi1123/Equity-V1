@@ -2134,7 +2134,28 @@ export function ImportStudio() {
               />
 
               <section className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
-                      <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-5">
+                      
+
+<p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">Workspace summary</p>
+                <h2 className="mt-2 text-xl font-semibold">Status</h2>
+
+                <div className="mt-5 space-y-3">
+                  <div className="rounded-2xl bg-white p-4">
+                    <p className="text-sm text-slate-500">Current template reuse</p>
+                    <p className="mt-1 text-sm font-medium text-slate-900">
+                      {sessions.current.matchedReusableTemplateId ? "Template matched or applied" : "No reusable match yet"}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl bg-white p-4">
+                    <p className="text-sm text-slate-500">Previous template reuse</p>
+                    <p className="mt-1 text-sm font-medium text-slate-900">
+                      {sessions.previous.matchedReusableTemplateId ? "Template matched or applied" : "No reusable match yet"}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl bg-white p-4">
+                    <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-5">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">Manual expenses</p>
@@ -2185,26 +2206,7 @@ export function ImportStudio() {
         </p>
       </div>
 
-<p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">Workspace summary</p>
-                <h2 className="mt-2 text-xl font-semibold">Status</h2>
-
-                <div className="mt-5 space-y-3">
-                  <div className="rounded-2xl bg-white p-4">
-                    <p className="text-sm text-slate-500">Current template reuse</p>
-                    <p className="mt-1 text-sm font-medium text-slate-900">
-                      {sessions.current.matchedReusableTemplateId ? "Template matched or applied" : "No reusable match yet"}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl bg-white p-4">
-                    <p className="text-sm text-slate-500">Previous template reuse</p>
-                    <p className="mt-1 text-sm font-medium text-slate-900">
-                      {sessions.previous.matchedReusableTemplateId ? "Template matched or applied" : "No reusable match yet"}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl bg-white p-4">
-                    <p className="text-sm text-slate-500">Selected header row</p>
+<p className="text-sm text-slate-500">Selected header row</p>
                     <p className="mt-1 text-sm font-medium text-slate-900">
                       {activeSession.headerRowIndex === null ? "—" : `Row ${activeSession.headerRowIndex + 1}`}
                     </p>
